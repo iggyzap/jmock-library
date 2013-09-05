@@ -111,7 +111,7 @@ public class ClassImposteriser implements Imposteriser {
             enhancer.setSuperclass(mockedType);
             enhancer.setInterfaces(ancilliaryTypes);
         }
-        enhancer.setCallbackTypes(new Class[]{InvocationHandler.class, NoOp.class});
+        enhancer.setCallbackTypes(new Class[]{MethodInterceptor.class, NoOp.class});
         enhancer.setCallbackFilter(IGNORED_METHODS);
         if (mockedType.getSigners() != null) {
             enhancer.setNamingPolicy(NAMING_POLICY_THAT_ALLOWS_IMPOSTERISATION_OF_CLASSES_IN_SIGNED_PACKAGES);
@@ -131,9 +131,10 @@ public class ClassImposteriser implements Imposteriser {
     private Object proxy(Class<?> proxyClass, final Invokable mockObject) {
         final Factory proxy = (Factory)objenesis.newInstance(proxyClass);
         proxy.setCallbacks(new Callback[] {
-            new InvocationHandler() {
-                public Object invoke(Object receiver, Method method, Object[] args) throws Throwable {
-                    return mockObject.invoke(new Invocation(receiver, method, args));
+            new MethodInterceptor() {
+                @Override
+                public Object intercept(Object receiver, Method method, Object[] args, MethodProxy proxy) throws Throwable {
+                    return mockObject.invoke(new InvocationEx(proxy, receiver, method, args));
                 }
             },
             NoOp.INSTANCE
